@@ -1,7 +1,7 @@
 {
-  "name": "play-dl",
-  "version": "1.9.7",
-  "description": "YouTube, SoundCloud, Spotify, Deezer searching and streaming for discord-js bots",
+  "name": "play-dl-stripped",
+  "version": "1.0.0",
+  "description": "YouTube searching",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "module": "dist/index.mjs",
@@ -16,41 +16,27 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/play-dl/play-dl"
+    "url": "git+https://github.com/tehtnaz/play-dl-stripped"
   },
   "keywords": [
     "node-youtube-dl",
     "youtube-dl",
     "yt-dl",
     "ytdl",
-    "youtube",
-    "spotify-dl",
-    "spotify",
-    "soundcloud",
-    "deezer"
+    "youtube"
   ],
-  "author": "Killer069",
+  "author": "tehtnaz",
   "license": "GPL-3.0",
-  "bugs": {
-    "url": "https://github.com/play-dl/play-dl/issues"
-  },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20.0.0"
   },
-  "homepage": "https://github.com/play-dl/play-dl#readme",
   "files": [
     "dist/*"
   ],
   "devDependencies": {
-    "@types/node": "^18.7.23",
+    "@types/node": "^22.17.0",
     "prettier": "^2.3.1",
-    "tsup": "^6.0.1",
-    "typedoc": "^0.22.11",
-    "typedoc-plugin-extras": "^2.2.1",
-    "typedoc-plugin-missing-exports": "^1.0.0",
-    "typescript": "^4.7.2"
-  },
-  "dependencies": {
-    "play-audio": "^0.5.2"
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2"
   }
 }

@@ -214,8 +214,14 @@ export async function video_basic_info(url: string, options: InfoOptions = {}): 
         }
     );
     const microformat = player_response.microformat.playerMicroformatRenderer;
-    const musicInfo = initial_response.engagementPanels.find((item: any) => item?.engagementPanelSectionListRenderer?.panelIdentifier == 'engagement-panel-structured-description')?.engagementPanelSectionListRenderer.content.structuredDescriptionContentRenderer.items
-        .find((el: any) => el.videoDescriptionMusicSectionRenderer)?.videoDescriptionMusicSectionRenderer.carouselLockups;
+    const musicInfo = initial_response.engagementPanels
+        .find(
+            (item: any) =>
+                item?.engagementPanelSectionListRenderer?.panelIdentifier == 'engagement-panel-structured-description'
+        )
+        ?.engagementPanelSectionListRenderer.content.structuredDescriptionContentRenderer.items.find(
+            (el: any) => el.videoDescriptionMusicSectionRenderer
+        )?.videoDescriptionMusicSectionRenderer.carouselLockups;
 
     const music: any[] = [];
     if (musicInfo) {
@@ -223,13 +229,27 @@ export async function video_basic_info(url: string, options: InfoOptions = {}): 
             if (!x.carouselLockupRenderer) return;
             const row = x.carouselLockupRenderer;
 
-            const song = row.videoLockup?.compactVideoRenderer.title.simpleText ?? row.videoLockup?.compactVideoRenderer.title.runs?.find((x:any) => x.text)?.text;
-            const metadata = row.infoRows?.map((info: any) => [info.infoRowRenderer.title.simpleText.toLowerCase(), ((info.infoRowRenderer.expandedMetadata ?? info.infoRowRenderer.defaultMetadata)?.runs?.map((i:any) => i.text).join("")) ?? info.infoRowRenderer.defaultMetadata?.simpleText ?? info.infoRowRenderer.expandedMetadata?.simpleText ?? ""]);
+            const song =
+                row.videoLockup?.compactVideoRenderer.title.simpleText ??
+                row.videoLockup?.compactVideoRenderer.title.runs?.find((x: any) => x.text)?.text;
+            const metadata = row.infoRows?.map((info: any) => [
+                info.infoRowRenderer.title.simpleText.toLowerCase(),
+                (info.infoRowRenderer.expandedMetadata ?? info.infoRowRenderer.defaultMetadata)?.runs
+                    ?.map((i: any) => i.text)
+                    .join('') ??
+                    info.infoRowRenderer.defaultMetadata?.simpleText ??
+                    info.infoRowRenderer.expandedMetadata?.simpleText ??
+                    ''
+            ]);
             const contents = Object.fromEntries(metadata ?? {});
-            const id = row.videoLockup?.compactVideoRenderer.navigationEndpoint?.watchEndpoint.videoId
-                ?? row.infoRows?.find((x: any) => x.infoRowRenderer.title.simpleText.toLowerCase() == "song")?.infoRowRenderer.defaultMetadata.runs?.find((x: any) => x.navigationEndpoint)?.navigationEndpoint.watchEndpoint?.videoId;
+            const id =
+                row.videoLockup?.compactVideoRenderer.navigationEndpoint?.watchEndpoint.videoId ??
+                row.infoRows
+                    ?.find((x: any) => x.infoRowRenderer.title.simpleText.toLowerCase() == 'song')
+                    ?.infoRowRenderer.defaultMetadata.runs?.find((x: any) => x.navigationEndpoint)?.navigationEndpoint
+                    .watchEndpoint?.videoId;
 
-            music.push({song, url: id ? `https://www.youtube.com/watch?v=${id}` : null, ...contents})
+            music.push({ song, url: id ? `https://www.youtube.com/watch?v=${id}` : null, ...contents });
         });
     }
     const rawChapters =
@@ -262,8 +282,11 @@ export async function video_basic_info(url: string, options: InfoOptions = {}): 
     const likeRenderer = initial_response.contents.twoColumnWatchNextResults.results.results.contents
         .find((content: any) => content.videoPrimaryInfoRenderer)
         ?.videoPrimaryInfoRenderer.videoActions.menuRenderer.topLevelButtons?.find(
-            (button: any) => button.toggleButtonRenderer?.defaultIcon.iconType === 'LIKE' || button.segmentedLikeDislikeButtonRenderer?.likeButton.toggleButtonRenderer?.defaultIcon.iconType === 'LIKE'
-        )
+            (button: any) =>
+                button.toggleButtonRenderer?.defaultIcon.iconType === 'LIKE' ||
+                button.segmentedLikeDislikeButtonRenderer?.likeButton.toggleButtonRenderer?.defaultIcon.iconType ===
+                    'LIKE'
+        );
 
     const video_details = new YouTubeVideo({
         id: vid.videoId,
@@ -286,8 +309,15 @@ export async function video_basic_info(url: string, options: InfoOptions = {}): 
         views: vid.viewCount,
         tags: vid.keywords,
         likes: parseInt(
-            likeRenderer?.toggleButtonRenderer?.defaultText.accessibility?.accessibilityData.label.replace(/\D+/g, '') ?? 
-            likeRenderer?.segmentedLikeDislikeButtonRenderer?.likeButton.toggleButtonRenderer?.defaultText.accessibility?.accessibilityData.label.replace(/\D+/g, '') ?? 0
+            likeRenderer?.toggleButtonRenderer?.defaultText.accessibility?.accessibilityData.label.replace(
+                /\D+/g,
+                ''
+            ) ??
+                likeRenderer?.segmentedLikeDislikeButtonRenderer?.likeButton.toggleButtonRenderer?.defaultText.accessibility?.accessibilityData.label.replace(
+                    /\D+/g,
+                    ''
+                ) ??
+                0
         ),
         live: vid.isLiveContent,
         private: vid.isPrivate,
@@ -319,116 +349,6 @@ export async function video_basic_info(url: string, options: InfoOptions = {}): 
         video_details,
         related_videos: related
     };
-}
-/**
- * Gets the data required for streaming from YouTube url, ID or html body data and deciphers it.
- *
- * Internal function used by {@link stream} instead of {@link video_info}
- * because it only extracts the information required for streaming.
- *
- * @param url YouTube url or ID or html body data
- * @param options Video Info Options
- *  - `boolean` htmldata : given data is html data or not
- * @returns Deciphered Video Info {@link StreamInfoData}.
- */
-export async function video_stream_info(url: string, options: InfoOptions = {}): Promise<StreamInfoData> {
-    if (typeof url !== 'string') throw new Error('url parameter is not a URL string or a string of HTML');
-    let body: string;
-    const cookieJar = {};
-    if (options.htmldata) {
-        body = url;
-    } else {
-        const video_id = extractVideoId(url);
-        if (!video_id) throw new Error('This is not a YouTube Watch URL');
-        const new_url = `https://www.youtube.com/watch?v=${video_id}&has_verified=1`;
-        body = await request(new_url, {
-            headers: { 'accept-language': 'en-US,en;q=0.9' },
-            cookies: true,
-            cookieJar
-        });
-    }
-    if (body.indexOf('Our systems have detected unusual traffic from your computer network.') !== -1)
-        throw new Error('Captcha page: YouTube has detected that you are a bot!');
-    const player_data = body
-        .split('var ytInitialPlayerResponse = ')?.[1]
-        ?.split(';</script>')[0]
-        .split(/(?<=}}});\s*(var|const|let)\s/)[0];
-    if (!player_data) throw new Error('Initial Player Response Data is undefined.');
-    const player_response = JSON.parse(player_data);
-    let upcoming = false;
-    if (player_response.playabilityStatus.status !== 'OK') {
-        if (player_response.playabilityStatus.status === 'CONTENT_CHECK_REQUIRED') {
-            if (options.htmldata)
-                throw new Error(
-                    `Accepting the viewer discretion is not supported when using htmldata, video: ${player_response.videoDetails.videoId}`
-                );
-
-            const initial_data = body
-                .split('var ytInitialData = ')?.[1]
-                ?.split(';</script>')[0]
-                .split(/;\s*(var|const|let)\s/)[0];
-            if (!initial_data) throw new Error('Initial Response Data is undefined.');
-
-            const cookies =
-                JSON.parse(initial_data).topbar.desktopTopbarRenderer.interstitial?.consentBumpV2Renderer.agreeButton
-                    .buttonRenderer.command.saveConsentAction;
-            if (cookies) {
-                Object.assign(cookieJar, {
-                    VISITOR_INFO1_LIVE: cookies.visitorCookie,
-                    CONSENT: cookies.consentCookie
-                });
-            }
-
-            const updatedValues = await acceptViewerDiscretion(
-                player_response.videoDetails.videoId,
-                cookieJar,
-                body,
-                false
-            );
-            player_response.streamingData = updatedValues.streamingData;
-        } else if (player_response.playabilityStatus.status === 'LIVE_STREAM_OFFLINE') upcoming = true;
-        else
-            throw new Error(
-                `While getting info from url\n${
-                    player_response.playabilityStatus.errorScreen.playerErrorMessageRenderer?.reason.simpleText ??
-                    player_response.playabilityStatus.errorScreen.playerKavRenderer?.reason.simpleText ??
-                    player_response.playabilityStatus.reason
-                }`
-            );
-    }
-    const html5player = `https://www.youtube.com${body.split('"jsUrl":"')[1].split('"')[0]}`;
-    const duration = Number(player_response.videoDetails.lengthSeconds);
-    const video_details = {
-        url: `https://www.youtube.com/watch?v=${player_response.videoDetails.videoId}`,
-        durationInSec: (duration < 0 ? 0 : duration) || 0
-    };
-    let format = [];
-    if (!upcoming) {
-        format.push(...(player_response.streamingData.formats ?? []));
-        format.push(...(player_response.streamingData.adaptiveFormats ?? []));
-
-        // get the formats for the android player for legacy videos
-        // fixes the stream being closed because not enough data
-        // arrived in time for ffmpeg to be able to extract audio data
-        if (parseAudioFormats(format).length === 0 && !options.htmldata) {
-            format = await getAndroidFormats(player_response.videoDetails.videoId, cookieJar, body);
-        }
-    }
-
-    const LiveStreamData = {
-        isLive: player_response.videoDetails.isLiveContent,
-        dashManifestUrl: player_response.streamingData?.dashManifestUrl ?? null,
-        hlsManifestUrl: player_response.streamingData?.hlsManifestUrl ?? null
-    };
-    return await decipher_info(
-        {
-            LiveStreamData,
-            html5player,
-            format,
-            video_details
-        },
-        true
-    );
 }
 /**
  * Function to convert seconds to [hour : minutes : seconds] format
@@ -612,33 +532,36 @@ async function acceptViewerDiscretion(
     if (!sessionToken)
         throw new Error(`Unable to extract XSRF_TOKEN to accept the viewer discretion popup for video: ${videoId}.`);
 
-    const verificationResponse = await request(`https://www.youtube.com/youtubei/v1/verify_age?key=${apiKey}&prettyPrint=false`, {
-        method: 'POST',
-        body: JSON.stringify({
-            context: {
-                client: {
-                    utcOffsetMinutes: 0,
-                    gl: 'US',
-                    hl: 'en',
-                    clientName: 'WEB',
-                    clientVersion:
-                        body.split('"INNERTUBE_CONTEXT_CLIENT_VERSION":"')[1]?.split('"')[0] ??
-                        body.split('"innertube_context_client_version":"')[1]?.split('"')[0] ??
-                        '<some version>'
+    const verificationResponse = await request(
+        `https://www.youtube.com/youtubei/v1/verify_age?key=${apiKey}&prettyPrint=false`,
+        {
+            method: 'POST',
+            body: JSON.stringify({
+                context: {
+                    client: {
+                        utcOffsetMinutes: 0,
+                        gl: 'US',
+                        hl: 'en',
+                        clientName: 'WEB',
+                        clientVersion:
+                            body.split('"INNERTUBE_CONTEXT_CLIENT_VERSION":"')[1]?.split('"')[0] ??
+                            body.split('"innertube_context_client_version":"')[1]?.split('"')[0] ??
+                            '<some version>'
+                    },
+                    user: {},
+                    request: {}
                 },
-                user: {},
-                request: {}
-            },
-            nextEndpoint: {
-                urlEndpoint: {
-                    url: `/watch?v=${videoId}&has_verified=1`
-                }
-            },
-            setControvercy: true
-        }),
-        cookies: true,
-        cookieJar
-    });
+                nextEndpoint: {
+                    urlEndpoint: {
+                        url: `/watch?v=${videoId}&has_verified=1`
+                    }
+                },
+                setControvercy: true
+            }),
+            cookies: true,
+            cookieJar
+        }
+    );
 
     const endpoint = JSON.parse(verificationResponse).actions[0].navigateAction.endpoint;
 
@@ -712,8 +635,7 @@ async function getAndroidFormats(videoId: string, cookieJar: { [key: string]: st
 
 function getWatchPlaylist(response: any, body: any, url: string): YouTubePlayList {
     const playlist_details = response.contents.twoColumnWatchNextResults.playlist?.playlist;
-    if (!playlist_details)
-        throw new Error("Watch playlist unavailable due to YouTube layout changes.")
+    if (!playlist_details) throw new Error('Watch playlist unavailable due to YouTube layout changes.');
 
     const videos = getWatchPlaylistVideos(playlist_details.contents);
     const API_KEY =

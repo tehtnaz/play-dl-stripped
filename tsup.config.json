@@ -5,13 +5,12 @@
         "play-dl/index.ts"
     ],
     "format": [
-        "esm",
-        "cjs"
+        "esm"
     ],
     "minify": true,
     "skipNodeModulesBundle": true,
     "sourcemap": true,
-    "target": "es2021",
+    "target": "es2022",
     "splitting": false,
     "keepNames": true
 }
